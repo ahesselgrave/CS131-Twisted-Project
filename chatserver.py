@@ -60,10 +60,15 @@ class ChatserverReceiver(LineReceiver):
         logging.debug('Received IAMAT')
         # Expect syntax of IAMAT kiwi.cs.ucla.edu +34.068930-118.445127 1400794645.392014450
         params = line.split(' ')
-        client_id = params[1]
-        lat_lon = params[2]
-        client_time = params[3]
-
+        try:
+            client_id = params[1]
+            lat_lon = params[2]
+            client_time = params[3]
+        except IndexError:
+            logging.error('IAMAT got an invalid line')
+            self.transport.write('? %s\n' % line)
+            return
+            
         # Get current time and subtract from client time
         time_diff = time.time() - float(client_time)
         return_msg = 'AT %s %s %s %s %s' % (self.factory.server_name,
@@ -75,17 +80,23 @@ class ChatserverReceiver(LineReceiver):
         self.factory.clients[client_id] = {'message': return_msg, 'time': client_time}
         self.transport.write('%s\n' % return_msg)
         logging.debug('Sent message to client %s: %s' % (client_id, return_msg))
+        self.send_location_to_neighbors(return_msg)
 
     def handle_AT(self, line):
         logging.debug('Received AT')
         # Should only be sent by server
         params = line.split(' ')
-        AT = params[0]
-        sending_server = params[1]
-        time_diff = params[2]
-        client_id = params[3]
-        lat_lon = params[4]
-        original_client_time = params[5]
+        try:
+            AT = params[0]
+            sending_server = params[1]
+            time_diff = params[2]
+            client_id = params[3]
+            lat_lon = params[4]
+            original_client_time = params[5]
+        except IndexError:
+            logging.error('AT got an invalid line')
+            self.transport.write('? %s\n' % line)
+            return
 
         return_msg = '%s %s %s %s %s %s' % (AT,
                                             self.factory.server_name,
@@ -106,11 +117,16 @@ class ChatserverReceiver(LineReceiver):
     def handle_WHATSAT(self, line):
         logging.debug('Received WHATSAT')
         params = line.split(' ')
-        WHATSAT = params[0]
-        client_id = params[1]
-        radius = int(params[2])
-        upper_bound = int(params[3])
-
+        try:
+            WHATSAT = params[0]
+            client_id = params[1]
+            radius = int(params[2])
+            upper_bound = int(params[3])
+        except IndexError:
+            logging.error('WHATSAT got an invalid line')
+            self.transport.write('? %s\n' % line)
+            return
+            
         stored_message = self.factory.clients[client_id]['message']
         lat_lon = stored_message.split(' ')[4]
         
