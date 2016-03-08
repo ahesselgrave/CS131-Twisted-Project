@@ -134,7 +134,7 @@ class ChatserverReceiver(LineReceiver):
         
     def send_location_to_neighbors(self, msg):
         for neighbor in COMM[self.factory.server_name]:
-            reactor.connectTCP('localhost', SERVERS[neighbor], InterserverClient(msg))
+            reactor.connectTCP('localhost', SERVERS[neighbor], InterserverClientFactory(msg))
             logging.debug('Sent message to %s: %s' % (neighbor, msg))
 
     def get_places_location(self, client_id, lat_lon, radius, upper_bound):
@@ -155,7 +155,7 @@ class ChatserverReceiver(LineReceiver):
         message = self.factory.clients[client_id]['message']
         self.transport.write('%s\n%s\n\n' % (message, json.dumps(location_results, indent=4)))
         
-class InterserverClientFactory(LineReceiver):
+class InterserverClient(LineReceiver):
     def __init__ (self, factory):
         self.factory = factory
 
@@ -163,12 +163,12 @@ class InterserverClientFactory(LineReceiver):
         self.sendLine(self.factory.message)
         self.transport.loseConnection()
 
-class InterserverClient(protocol.ClientFactory):
+class InterserverClientFactory(protocol.ClientFactory):
     def __init__(self, message):
         self.message = message
 
     def buildProtocol(self, addr):
-        return InterserverClientFactory(self)
+        return InterserverClient(self)
     
 class ChatserverFactory(protocol.ServerFactory):
     def __init__(self, server_name):
@@ -196,5 +196,7 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
+
+
+
     
